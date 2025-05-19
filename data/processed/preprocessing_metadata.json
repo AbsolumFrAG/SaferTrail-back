@@ -1,0 +1,16 @@
+{
+  "preprocessing_date": "2025-05-19T17:54:49.988793",
+  "datasets_processed": [
+    "311",
+    "crime",
+    "crashes"
+  ],
+  "total_incidents": 58,
+  "data_quality": {
+    "coordinate_coverage": 100.0,
+    "temporal_coverage": "Error: Tz-aware datetime.datetime cannot be converted to datetime64 unless utc=True, at position 29"
+  },
+  "file_formats_used": [
+    "parquet"
+  ]
+}
