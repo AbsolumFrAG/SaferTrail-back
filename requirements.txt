@@ -6,3 +6,6 @@ folium
 plotly
 pyarrow
 scikit-learn
+tensorflow
+xgboost
+shap
