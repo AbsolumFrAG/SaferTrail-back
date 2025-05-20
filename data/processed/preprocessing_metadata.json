@@ -1,14 +1,14 @@
 {
-  "preprocessing_date": "2025-05-19T19:31:32.656650",
+  "preprocessing_date": "2025-05-19T20:05:46.635064",
   "datasets_processed": [
     "311",
     "crime",
     "crashes"
   ],
-  "total_incidents": 311968,
+  "total_incidents": 212669,
   "data_quality": {
     "coordinate_coverage": 100.0,
-    "temporal_coverage": "Error: Tz-aware datetime.datetime cannot be converted to datetime64 unless utc=True, at position 100006"
+    "temporal_coverage": "Error: Tz-aware datetime.datetime cannot be converted to datetime64 unless utc=True, at position 707"
   },
   "file_formats_used": [
     "parquet"
