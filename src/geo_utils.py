@@ -204,3 +204,99 @@ def find_nearby_amenities(point, distance=500, amenity_types=None):
         "amenities_by_type": {},
         "message": "Fonctionnalité de recherche d'équipements non implémentée"
     }
+
+def create_geojson_from_street_segments(risk_df, color_by_risk=True, min_risk=0, limit=None):
+    """
+    Crée un GeoJSON à partir des segments de rue avec leurs scores de risque
+    
+    Args:
+        risk_df (GeoDataFrame): GeoDataFrame contenant les segments de rue avec leurs scores de risque
+        color_by_risk (bool): Si True, ajoute une couleur basée sur le niveau de risque
+        min_risk (float): Score de risque minimum pour inclure un segment
+        limit (int): Nombre maximum de segments à inclure
+    
+    Returns:
+        dict: GeoJSON contenant les segments de rue
+    """
+    features = []
+    
+    # Filtrer pour garder uniquement les segments de rue (pas les intersections)
+    segments_df = risk_df[risk_df['entity_type'] == 'street_segment'].copy()
+    
+    # Filtrer par score de risque minimum
+    if min_risk > 0:
+        segments_df = segments_df[segments_df['risk_score'] >= min_risk]
+    
+    # Trier par score de risque décroissant
+    segments_df = segments_df.sort_values('risk_score', ascending=False)
+    
+    # Limiter le nombre de segments
+    if limit is not None and limit > 0:
+        segments_df = segments_df.head(limit)
+    
+    for _, segment in segments_df.iterrows():
+        # Vérifier si la géométrie est valide
+        if segment.geometry is None or segment.geometry.is_empty:
+            continue
+        
+        try:
+            # Obtenir le score de risque et le niveau de risque
+            risk_score = float(segment.get('risk_score', 0))
+            risk_level = str(segment.get('risk_level', 'Inconnu'))
+            
+            # Définir la couleur en fonction du niveau de risque
+            color = "#00FF00"  # Vert par défaut
+            if color_by_risk:
+                if risk_level == 'Très élevé':
+                    color = "#FF0000"  # Rouge
+                elif risk_level == 'Élevé':
+                    color = "#FFA500"  # Orange
+                elif risk_level == 'Modéré':
+                    color = "#FFFF00"  # Jaune
+            
+            # Créer les propriétés
+            properties = {
+                'name': segment.get('full_street_name', 'Segment inconnu'),
+                'risk_score': risk_score,
+                'risk_level': risk_level,
+                'color': color,
+                'ped_crash_count': int(segment.get('ped_crash_count', 0)),
+                'ped_crash_night_count': int(segment.get('ped_crash_night_count', 0)),
+                'ped_311_count': int(segment.get('ped_311_count', 0))
+            }
+            
+            # Extraire la géométrie au format GeoJSON
+            if hasattr(segment.geometry, '__geo_interface__'):
+                geometry = segment.geometry.__geo_interface__
+            else:
+                # Si __geo_interface__ n'est pas disponible, convertir manuellement
+                if segment.geometry.type == 'LineString':
+                    coords = list(segment.geometry.coords)
+                    geometry = {
+                        'type': 'LineString',
+                        'coordinates': coords
+                    }
+                else:
+                    # Ignorer les géométries non supportées
+                    continue
+            
+            # Créer la feature
+            feature = {
+                'type': 'Feature',
+                'properties': properties,
+                'geometry': geometry
+            }
+            
+            features.append(feature)
+            
+        except Exception as e:
+            # Ignorer les segments avec des erreurs
+            continue
+    
+    # Créer le GeoJSON final
+    geojson = {
+        'type': 'FeatureCollection',
+        'features': features
+    }
+    
+    return geojson

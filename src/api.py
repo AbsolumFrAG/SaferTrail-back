@@ -465,6 +465,43 @@ def compare_times():
         }
     })
 
+@app.route('/street-segments', methods=['GET'])
+def get_street_segments():
+    """
+    Endpoint pour obtenir tous les segments de rue avec leurs scores de risque
+    
+    Query parameters:
+        color_by_risk (bool): Si True, ajoute une couleur basée sur le niveau de risque (défaut: True)
+        min_risk (float): Score de risque minimum pour inclure un segment (défaut: 0)
+        limit (int): Nombre maximum de segments à inclure (défaut: 1000)
+    """
+    # Charger le modèle si nécessaire
+    if model.risk_df is None:
+        model.load_model()
+    
+    # Vérifier si le modèle est chargé
+    if model.risk_df is None:
+        return jsonify({
+            'status': 'error',
+            'message': 'Aucun modèle chargé'
+        }), 500
+    
+    # Obtenir les paramètres
+    color_by_risk = request.args.get('color_by_risk', 'true').lower() == 'true'
+    min_risk = float(request.args.get('min_risk', 0))
+    limit = int(request.args.get('limit', 1000))
+    
+    # Créer le GeoJSON
+    from .geo_utils import create_geojson_from_street_segments
+    geojson = create_geojson_from_street_segments(
+        model.risk_df, 
+        color_by_risk=color_by_risk,
+        min_risk=min_risk,
+        limit=limit
+    )
+    
+    return jsonify(geojson)
+
 def start_api(host='0.0.0.0', port=8000, debug=False):
     """
     Démarre l'API Flask

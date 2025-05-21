@@ -9,3 +9,4 @@ flask
 pytest
 jupyterlab
 pytz
+networkx
