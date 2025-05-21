@@ -1,11 +1,11 @@
 pandas
 numpy
+geopandas
+scikit-learn
 matplotlib
 seaborn
 folium
-plotly
-pyarrow
-scikit-learn
-tensorflow
-xgboost
-shap
+flask
+pytest
+jupyterlab
+pytz
