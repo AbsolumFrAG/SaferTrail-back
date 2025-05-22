@@ -10,3 +10,4 @@ pytest
 jupyterlab
 pytz
 networkx
+flask-swagger-ui

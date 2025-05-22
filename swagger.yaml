@@ -1,0 +1,1224 @@
+openapi: 3.0.3
+info:
+  title: SaferTrail API
+  description: |
+    Cette API fournit des services d'analyse de la sécurité des piétons à Boston, incluant :
+    - Analyse des zones à risque basée sur les accidents et incidents
+    - Prédictions temporelles du risque
+    - Routage intelligent évitant les zones dangereuses avec l'algorithme ALT
+    - Recommandations de sécurité personnalisées
+    
+    L'API utilise des données d'accidents, de signalements 311, de crimes et d'infrastructure 
+    pour calculer des scores de risque et proposer des itinéraires sécurisés.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000
+    description: Serveur de développement local
+
+tags:
+  - name: Santé
+    description: Endpoints de monitoring et de santé de l'API
+  - name: Modèle
+    description: Gestion du modèle d'analyse de risque
+  - name: Analyse de Risque
+    description: Analyse des zones à risque pour les piétons
+  - name: Analyse Temporelle
+    description: Prédictions et analyse du risque selon l'heure
+  - name: Routage Sécurisé
+    description: Calcul d'itinéraires évitant les zones dangereuses
+  - name: Statistiques
+    description: Statistiques globales et par zone
+  - name: Configuration
+    description: Configuration et statut du système
+
+paths:
+  /health:
+    get:
+      tags: [Santé]
+      summary: Vérification de la santé de l'API
+      description: Retourne le statut de santé de l'API et ses fonctionnalités disponibles
+      responses:
+        '200':
+          description: API fonctionnelle
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  message:
+                    type: string
+                    example: "L'API d'analyse de la sécurité piétonne est fonctionnelle"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  features:
+                    type: object
+                    properties:
+                      risk_analysis:
+                        type: boolean
+                      temporal_prediction:
+                        type: boolean
+                      safe_routing:
+                        type: boolean
+
+  /train:
+    post:
+      tags: [Modèle]
+      summary: Entraîner ou réentraîner le modèle
+      description: Lance l'entraînement du modèle d'analyse de risque piéton
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force_retrain:
+                  type: boolean
+                  description: Force le réentraînement même si un modèle existe
+                  default: false
+      responses:
+        '200':
+          description: Modèle entraîné avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                  routing_status:
+                    type: string
+        '500':
+          description: Erreur lors de l'entraînement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /risk-zones:
+    get:
+      tags: [Analyse de Risque]
+      summary: Obtenir les zones à risque pour les piétons
+      description: Retourne les zones avec les scores de risque les plus élevés
+      parameters:
+        - name: threshold
+          in: query
+          description: Seuil de score de risque minimum
+          schema:
+            type: number
+            format: float
+            default: 0.7
+            minimum: 0
+            maximum: 1
+        - name: limit
+          in: query
+          description: Nombre maximum de zones à retourner
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: format
+          in: query
+          description: Format de sortie
+          schema:
+            type: string
+            enum: [json, geojson]
+            default: json
+      responses:
+        '200':
+          description: Liste des zones à risque
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RiskZonesResponse'
+                  - $ref: '#/components/schemas/GeoJSON'
+
+  /clusters:
+    get:
+      tags: [Analyse de Risque]
+      summary: Obtenir les clusters de zones à risque
+      description: Identifie les groupes de zones dangereuses géographiquement proches
+      parameters:
+        - name: min_size
+          in: query
+          description: Taille minimale d'un cluster
+          schema:
+            type: integer
+            default: 2
+            minimum: 2
+      responses:
+        '200':
+          description: Liste des clusters de risque
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClustersResponse'
+
+  /recommendations/{zone_id}:
+    get:
+      tags: [Analyse de Risque]
+      summary: Obtenir des recommandations de sécurité pour une zone
+      description: Génère des recommandations personnalisées pour améliorer la sécurité d'une zone spécifique
+      parameters:
+        - name: zone_id
+          in: path
+          required: true
+          description: Identifiant de la zone
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Recommandations de sécurité
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationsResponse'
+        '404':
+          description: Zone non trouvée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /time-risk:
+    get:
+      tags: [Analyse Temporelle]
+      summary: Obtenir le risque piéton à un moment spécifique
+      description: Prédit le niveau de risque pour les piétons à une heure donnée
+      parameters:
+        - name: hour
+          in: query
+          description: Heure de la journée (0-23)
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 23
+        - name: day
+          in: query
+          description: Jour de la semaine (0-6 ou nom du jour)
+          schema:
+            oneOf:
+              - type: integer
+                minimum: 0
+                maximum: 6
+              - type: string
+        - name: month
+          in: query
+          description: Mois (1-12)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - name: datetime
+          in: query
+          description: Date et heure complètes (format ISO)
+          schema:
+            type: string
+            format: date-time
+            example: "2023-05-21T14:30:00"
+      responses:
+        '200':
+          description: Informations de risque temporel
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeRiskResponse'
+        '400':
+          description: Paramètres invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /current-risk:
+    get:
+      tags: [Analyse Temporelle]
+      summary: Obtenir le risque piéton actuel
+      description: Retourne le niveau de risque pour l'heure actuelle
+      responses:
+        '200':
+          description: Risque actuel
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/TimeRiskResponse'
+                  - type: object
+                    properties:
+                      timestamp:
+                        type: string
+                        format: date-time
+
+  /risk-forecast:
+    get:
+      tags: [Analyse Temporelle]
+      summary: Prévisions de risque pour les prochaines heures
+      description: Génère des prévisions de risque pour les heures à venir
+      parameters:
+        - name: hours
+          in: query
+          description: Nombre d'heures à prévoir (max 48)
+          schema:
+            type: integer
+            default: 24
+            minimum: 1
+            maximum: 48
+      responses:
+        '200':
+          description: Prévisions de risque
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForecastResponse'
+
+  /high-risk-times:
+    get:
+      tags: [Analyse Temporelle]
+      summary: Périodes à plus haut risque
+      description: Identifie les moments les plus dangereux pour les piétons
+      parameters:
+        - name: top_n
+          in: query
+          description: Nombre de périodes à retourner par catégorie
+          schema:
+            type: integer
+            default: 5
+            minimum: 1
+            maximum: 10
+      responses:
+        '200':
+          description: Périodes à haut risque
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HighRiskTimesResponse'
+
+  /time-risk-heatmap:
+    get:
+      tags: [Analyse Temporelle]
+      summary: Données de heatmap du risque temporel
+      description: Retourne une matrice de risque par heure et jour de la semaine
+      responses:
+        '200':
+          description: Données de heatmap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeatmapResponse'
+
+  /safe-route:
+    get:
+      tags: [Routage Sécurisé]
+      summary: Calculer un itinéraire sécurisé
+      description: Utilise l'algorithme ALT pour calculer un itinéraire évitant les zones dangereuses
+      parameters:
+        - name: start_lat
+          in: query
+          required: true
+          description: Latitude du point de départ
+          schema:
+            type: number
+            format: float
+            example: 42.3601
+        - name: start_lon
+          in: query
+          required: true
+          description: Longitude du point de départ
+          schema:
+            type: number
+            format: float
+            example: -71.0589
+        - name: end_lat
+          in: query
+          required: true
+          description: Latitude du point d'arrivée
+          schema:
+            type: number
+            format: float
+            example: 42.3400
+        - name: end_lon
+          in: query
+          required: true
+          description: Longitude du point d'arrivée
+          schema:
+            type: number
+            format: float
+            example: -71.0842
+        - name: time
+          in: query
+          description: Heure à laquelle effectuer le routage
+          schema:
+            type: string
+            format: date-time
+            example: "2023-05-21T18:00:00"
+        - name: risk_weight
+          in: query
+          description: Importance du facteur de risque vs distance (0-1)
+          schema:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            default: 0.7
+        - name: format
+          in: query
+          description: Format de sortie
+          schema:
+            type: string
+            enum: [json, geojson]
+            default: json
+      responses:
+        '200':
+          description: Itinéraire sécurisé calculé
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RouteResponse'
+                  - $ref: '#/components/schemas/GeoJSON'
+        '400':
+          description: Paramètres invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Erreur lors du calcul d'itinéraire
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /compare-routes:
+    get:
+      tags: [Routage Sécurisé]
+      summary: Comparer itinéraire sécurisé vs le plus court
+      description: Compare les métriques entre l'itinéraire le plus sûr et le plus court
+      parameters:
+        - name: start_lat
+          in: query
+          required: true
+          description: Latitude du point de départ
+          schema:
+            type: number
+            format: float
+        - name: start_lon
+          in: query
+          required: true
+          description: Longitude du point de départ
+          schema:
+            type: number
+            format: float
+        - name: end_lat
+          in: query
+          required: true
+          description: Latitude du point d'arrivée
+          schema:
+            type: number
+            format: float
+        - name: end_lon
+          in: query
+          required: true
+          description: Longitude du point d'arrivée
+          schema:
+            type: number
+            format: float
+        - name: time
+          in: query
+          description: Heure à laquelle effectuer le routage
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Comparaison des itinéraires
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RouteComparisonResponse'
+
+  /routing-settings:
+    get:
+      tags: [Configuration]
+      summary: Obtenir les paramètres de routage
+      description: Retourne la configuration actuelle du routeur
+      responses:
+        '200':
+          description: Paramètres de routage
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoutingSettings'
+    post:
+      tags: [Configuration]
+      summary: Modifier les paramètres de routage
+      description: Met à jour la configuration du routeur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoutingSettings'
+      responses:
+        '200':
+          description: Paramètres mis à jour
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RoutingSettings'
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        example: "success"
+                      message:
+                        type: string
+        '400':
+          description: Paramètres invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /router-status:
+    get:
+      tags: [Configuration]
+      summary: Statut du routeur ALT
+      description: Retourne les informations de statut du routeur
+      responses:
+        '200':
+          description: Statut du routeur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RouterStatus'
+
+  /initialize-router:
+    post:
+      tags: [Configuration]
+      summary: Initialiser le routeur
+      description: Force l'initialisation du routeur ALT avec les données actuelles
+      responses:
+        '200':
+          description: Routeur initialisé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                  graph_nodes:
+                    type: integer
+                  graph_edges:
+                    type: integer
+                  landmarks_count:
+                    type: integer
+        '500':
+          description: Erreur d'initialisation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /statistics:
+    get:
+      tags: [Statistiques]
+      summary: Statistiques globales de sécurité piétonne
+      description: Retourne des métriques agrégées sur la sécurité des piétons
+      responses:
+        '200':
+          description: Statistiques globales
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatisticsResponse'
+
+  /areas/{area_name}:
+    get:
+      tags: [Statistiques]
+      summary: Risque global pour une zone spécifique
+      description: Analyse de risque pour un quartier ou une zone géographique
+      parameters:
+        - name: area_name
+          in: path
+          required: true
+          description: Nom du quartier ou de la zone
+          schema:
+            type: string
+            example: "Back Bay"
+      responses:
+        '200':
+          description: Analyse de risque pour la zone
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AreaRiskResponse'
+        '404':
+          description: Zone non trouvée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /compare-times:
+    get:
+      tags: [Analyse Temporelle]
+      summary: Comparer le risque entre différents moments
+      description: Compare les niveaux de risque entre deux moments donnés
+      parameters:
+        - name: time1
+          in: query
+          required: true
+          description: Premier moment à comparer
+          schema:
+            type: string
+            format: date-time
+            example: "2023-05-21T14:30:00"
+        - name: time2
+          in: query
+          required: true
+          description: Deuxième moment à comparer
+          schema:
+            type: string
+            format: date-time
+            example: "2023-05-21T22:30:00"
+      responses:
+        '200':
+          description: Comparaison temporelle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeComparisonResponse'
+        '400':
+          description: Paramètres invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /street-segments:
+    get:
+      tags: [Analyse de Risque]
+      summary: Segments de rue avec scores de risque
+      description: Retourne tous les segments de rue avec leurs niveaux de risque
+      parameters:
+        - name: color_by_risk
+          in: query
+          description: Ajouter une couleur basée sur le niveau de risque
+          schema:
+            type: boolean
+            default: true
+        - name: min_risk
+          in: query
+          description: Score de risque minimum pour inclure un segment
+          schema:
+            type: number
+            format: float
+            default: 0
+            minimum: 0
+            maximum: 1
+        - name: limit
+          in: query
+          description: Nombre maximum de segments à inclure
+          schema:
+            type: integer
+            default: 1000
+            minimum: 1
+            maximum: 5000
+      responses:
+        '200':
+          description: Segments de rue en format GeoJSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeoJSON'
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        message:
+          type: string
+          example: "Description de l'erreur"
+
+    RiskZone:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [street_segment, intersection]
+        name:
+          type: string
+        risk_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        risk_level:
+          type: string
+          enum: [Faible, Modéré, Élevé, Très élevé]
+        ped_crash_count:
+          type: integer
+        ped_crash_night_count:
+          type: integer
+        ped_311_count:
+          type: integer
+        sidewalk_issues:
+          type: integer
+        crossing_issues:
+          type: integer
+        lighting_issues:
+          type: integer
+        signal_issues:
+          type: integer
+        crime_count:
+          type: integer
+        cluster:
+          type: integer
+        coordinates:
+          type: object
+          properties:
+            lat:
+              type: number
+              format: float
+            lon:
+              type: number
+              format: float
+
+    RiskZonesResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        zones:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskZone'
+
+    Cluster:
+      type: object
+      properties:
+        cluster_id:
+          type: integer
+        size:
+          type: integer
+        type:
+          type: string
+        avg_risk_score:
+          type: number
+          format: float
+        max_risk_score:
+          type: number
+          format: float
+        total_pedestrian_crashes:
+          type: integer
+        total_night_crashes:
+          type: integer
+        main_zone_name:
+          type: string
+        coordinates:
+          type: object
+          properties:
+            lat:
+              type: number
+              format: float
+            lon:
+              type: number
+              format: float
+
+    ClustersResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        clusters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Cluster'
+
+    RecommendationsResponse:
+      type: object
+      properties:
+        zone_id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        risk_score:
+          type: number
+          format: float
+        risk_level:
+          type: string
+        problems_identified:
+          type: array
+          items:
+            type: string
+        recommendations:
+          type: array
+          items:
+            type: string
+        coordinates:
+          type: object
+          properties:
+            lat:
+              type: number
+              format: float
+            lon:
+              type: number
+              format: float
+
+    TimeRiskResponse:
+      type: object
+      properties:
+        time:
+          type: object
+          properties:
+            hour:
+              type: integer
+            hour_formatted:
+              type: string
+            day_of_week:
+              type: integer
+            day_name:
+              type: string
+            month:
+              type: integer
+            month_name:
+              type: string
+            period:
+              type: string
+              enum: [nuit, matin, après-midi, soir]
+        risk:
+          type: object
+          properties:
+            score:
+              type: number
+              format: float
+            level:
+              type: string
+            components:
+              type: object
+              properties:
+                hour_risk:
+                  type: number
+                  format: float
+                day_risk:
+                  type: number
+                  format: float
+                month_risk:
+                  type: number
+                  format: float
+        recommendations:
+          type: array
+          items:
+            type: string
+
+    ForecastItem:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        hour:
+          type: integer
+        day_of_week:
+          type: integer
+        day_name:
+          type: string
+        risk_score:
+          type: number
+          format: float
+        risk_level:
+          type: string
+        period:
+          type: string
+
+    ForecastResponse:
+      type: object
+      properties:
+        start_time:
+          type: string
+          format: date-time
+        hours:
+          type: integer
+        forecast:
+          type: array
+          items:
+            $ref: '#/components/schemas/ForecastItem'
+
+    HighRiskTimesResponse:
+      type: object
+      properties:
+        hours:
+          type: array
+          items:
+            type: object
+            properties:
+              hour:
+                type: integer
+              hour_formatted:
+                type: string
+              risk_score:
+                type: number
+                format: float
+              period:
+                type: string
+        days:
+          type: array
+          items:
+            type: object
+            properties:
+              day:
+                type: string
+              day_fr:
+                type: string
+              risk_score:
+                type: number
+                format: float
+        months:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: integer
+              month_name:
+                type: string
+              risk_score:
+                type: number
+                format: float
+
+    HeatmapResponse:
+      type: object
+      properties:
+        matrix:
+          type: array
+          items:
+            type: array
+            items:
+              type: number
+              format: float
+        days:
+          type: array
+          items:
+            type: string
+        hours:
+          type: array
+          items:
+            type: string
+
+    RouteSegment:
+      type: object
+      properties:
+        street:
+          type: string
+        length:
+          type: number
+          format: float
+        risk:
+          type: number
+          format: float
+        coordinates:
+          type: array
+          items:
+            type: array
+            items:
+              type: number
+              format: float
+
+    Route:
+      type: object
+      properties:
+        distance:
+          type: number
+          format: float
+        estimated_time:
+          type: number
+          format: float
+        risk_score:
+          type: number
+          format: float
+        risk_level:
+          type: string
+        segments:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteSegment'
+
+    RouteResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        route:
+          $ref: '#/components/schemas/Route'
+        time:
+          type: string
+
+    RouteComparisonResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        safe_route:
+          $ref: '#/components/schemas/Route'
+        shortest_route:
+          $ref: '#/components/schemas/Route'
+        comparison:
+          type: object
+          properties:
+            distance_difference:
+              type: number
+              format: float
+            distance_percentage:
+              type: number
+              format: float
+            risk_difference:
+              type: number
+              format: float
+            risk_percentage:
+              type: number
+              format: float
+            safer_route_worth_it:
+              type: boolean
+        recommendation:
+          type: string
+
+    RoutingSettings:
+      type: object
+      properties:
+        risk_weight:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Importance du facteur de risque vs distance
+        max_detour_factor:
+          type: number
+          format: float
+          minimum: 1
+          description: Facteur de détour maximum autorisé
+        graph_initialized:
+          type: boolean
+          readOnly: true
+        num_landmarks:
+          type: integer
+          readOnly: true
+
+    RouterStatus:
+      type: object
+      properties:
+        router_initialized:
+          type: boolean
+        graph_nodes:
+          type: integer
+        graph_edges:
+          type: integer
+        landmarks_count:
+          type: integer
+        risk_weight:
+          type: number
+          format: float
+        max_detour_factor:
+          type: number
+          format: float
+
+    StatisticsResponse:
+      type: object
+      properties:
+        total_pedestrian_crashes:
+          type: integer
+        total_night_crashes:
+          type: integer
+        total_pedestrian_related_reports:
+          type: integer
+        high_risk_zones_count:
+          type: integer
+        dangerous_intersections_count:
+          type: integer
+        risk_level_distribution:
+          type: object
+          additionalProperties:
+            type: integer
+        common_issues:
+          type: object
+          properties:
+            sidewalk_issues:
+              type: integer
+            crossing_issues:
+              type: integer
+            lighting_issues:
+              type: integer
+            signal_issues:
+              type: integer
+        temporal_patterns:
+          type: object
+          properties:
+            high_risk_hours:
+              type: array
+              items:
+                type: integer
+            high_risk_days:
+              type: array
+              items:
+                type: string
+            high_risk_months:
+              type: array
+              items:
+                type: string
+        routing_available:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
+
+    AreaRiskResponse:
+      type: object
+      properties:
+        area_name:
+          type: string
+        average_risk_score:
+          type: number
+          format: float
+        maximum_risk_score:
+          type: number
+          format: float
+        total_pedestrian_crashes:
+          type: integer
+        high_risk_zones:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              risk_score:
+                type: number
+                format: float
+              risk_level:
+                type: string
+              coordinates:
+                type: object
+                properties:
+                  lat:
+                    type: number
+                    format: float
+                  lon:
+                    type: number
+                    format: float
+
+    TimeComparisonResponse:
+      type: object
+      properties:
+        time1:
+          type: object
+          properties:
+            datetime:
+              type: string
+              format: date-time
+            hour:
+              type: integer
+            day:
+              type: string
+            risk_score:
+              type: number
+              format: float
+            risk_level:
+              type: string
+            period:
+              type: string
+        time2:
+          type: object
+          properties:
+            datetime:
+              type: string
+              format: date-time
+            hour:
+              type: integer
+            day:
+              type: string
+            risk_score:
+              type: number
+              format: float
+            risk_level:
+              type: string
+            period:
+              type: string
+        comparison:
+          type: object
+          properties:
+            risk_difference:
+              type: number
+              format: float
+            percentage_change:
+              type: number
+              format: float
+            safer_time:
+              type: string
+              enum: [time1, time2]
+            recommendation:
+              type: string
+
+    GeoJSON:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [FeatureCollection]
+        features:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [Feature]
+              geometry:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    enum: [Point, LineString, Polygon]
+                  coordinates:
+                    type: array
+              properties:
+                type: object
+                additionalProperties: true
+        properties:
+          type: object
+          additionalProperties: true
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Clé API pour l'authentification (si requise)
+
+security:
+  - ApiKeyAuth: []
