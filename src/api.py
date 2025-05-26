@@ -877,7 +877,7 @@ def start_api(host='0.0.0.0', port=8000, debug=False):
     # Démarrer l'API
     print(f"Démarrage de l'API sur {host}:{port}...")
     print("\nEndpoints disponibles:")
-    print("- Analyse de risque: /risk-zones, /clusters, /recommendations/<id>")
+    print("- Analyse de risque: /street-segments, /risk-zones, /clusters, /recommendations/<id>")
     print("- Analyse temporelle: /time-risk, /current-risk, /risk-forecast")
     print("- Routage sécurisé: /safe-route, /compare-routes")
     print("- Statistiques: /statistics, /areas/<name>")
