@@ -1,4 +1,4 @@
-# Dockerfile simple pour SaferTrail API
+# Dockerfile pour SaferTrail API avec Alpine Linux
 FROM python:3.13-alpine
 
 # Variables d'environnement
@@ -9,19 +9,24 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app
 
 # Installation des dépendances système pour les packages géospatiaux
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apk update && apk add --no-cache \
     gcc \
     g++ \
-    gdal-bin \
-    libgdal-dev \
-    libproj-dev \
-    libgeos-dev \
-    libspatialindex-dev \
+    musl-dev \
+    linux-headers \
+    gdal \
+    gdal-dev \
+    proj-dev \
+    geos-dev \
+    spatialindex-dev \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    make \
+    cmake \
+    && rm -rf /var/cache/apk/*
 
 # Créer l'utilisateur et le répertoire de travail
-RUN groupadd -r safertrail && useradd -r -g safertrail safertrail
+RUN addgroup -g 1000 safertrail && \
+    adduser -D -s /bin/sh -u 1000 -G safertrail safertrail
 WORKDIR /app
 
 # Copier et installer les dépendances Python
