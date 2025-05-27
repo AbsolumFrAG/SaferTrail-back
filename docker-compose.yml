@@ -1,0 +1,41 @@
+services:
+  # Service principal SaferTrail API
+  safertrail-api:
+    build: .
+    container_name: safertrail-api
+    ports:
+      - "8000:8000"
+    environment:
+      - FLASK_ENV=production
+      - PYTHONPATH=/app
+    volumes:
+      - ./data:/app/data:ro
+      - ./models:/app/models
+      - api-logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Mode développement (optionnel)
+  safertrail-dev:
+    build: .
+    container_name: safertrail-dev
+    ports:
+      - "8001:8000"
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - PYTHONPATH=/app
+    volumes:
+      - .:/app
+    profiles:
+      - dev
+    command: python main.py api --debug --host 0.0.0.0 --port 8000
+
+volumes:
+  api-logs:
+    driver: local

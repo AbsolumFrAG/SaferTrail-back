@@ -2,12 +2,8 @@ pandas
 numpy
 geopandas
 scikit-learn
-matplotlib
-seaborn
-folium
 flask
 pytest
-jupyterlab
 pytz
 networkx
 flask-swagger-ui
