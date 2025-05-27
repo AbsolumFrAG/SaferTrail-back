@@ -18,7 +18,6 @@ RUN apk update && apk add --no-cache \
     gdal-dev \
     proj-dev \
     geos-dev \
-    spatialindex-dev \
     curl \
     make \
     cmake \
