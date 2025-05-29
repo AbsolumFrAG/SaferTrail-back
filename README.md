@@ -1,292 +1,292 @@
 # SaferTrail Boston 🚶‍♀️🚦
 
-**Modèle d'analyse de la sécurité piétonne à Boston avec routage intelligent**
+**Pedestrian safety analysis model for Boston with intelligent routing**
 
-SaferTrail est un système d'analyse avancé qui évalue les risques pour les piétons à Boston en combinant les données d'accidents, les signalements 311, les incidents criminels et les caractéristiques des infrastructures. Le système propose également un routage intelligent qui évite les zones dangereuses et tient compte des restrictions piétonnes.
+SaferTrail is an advanced analysis system that evaluates pedestrian risks in Boston by combining crash data, 311 reports, criminal incidents, and infrastructure characteristics. The system also offers intelligent routing that avoids dangerous areas and takes pedestrian restrictions into account.
 
-## 🌟 Fonctionnalités principales
+## 🌟 Main Features
 
-- **Analyse de risque spatiale** : Identification des zones dangereuses pour les piétons
-- **Prédiction temporelle** : Évaluation du risque selon l'heure, le jour et la saison
-- **Routage sécurisé ALT** : Algorithme de routage évitant les zones à risque avec détection des transports requis
-- **Classification des routes** : Filtrage automatique des routes impraticables à pied
-- **API REST complète** : Interface pour intégration dans d'autres applications
-- **Clustering de zones à risque** : Identification des points chauds de danger
-- **Recommandations de sécurité** : Suggestions d'amélioration pour chaque zone
+- **Spatial risk analysis**: Identification of dangerous zones for pedestrians
+- **Temporal prediction**: Risk assessment based on time, day, and season
+- **Secure ALT routing**: Routing algorithm that avoids risk zones with required transport detection
+- **Road classification**: Automatic filtering of roads impassable on foot
+- **Complete REST API**: Interface for integration into other applications
+- **Risk zone clustering**: Identification of danger hotspots
+- **Safety recommendations**: Improvement suggestions for each zone
 
-## 📋 Prérequis
+## 📋 Prerequisites
 
 - Python 3.8+
 - pip
-- Données géospatiales de Boston (voir section Structure des données)
+- Boston geospatial data (see Data Structure section)
 
-## 🚀 Installation et configuration
+## 🚀 Installation and Setup
 
-### 1. Cloner le projet
+### 1. Clone the project
 
 ```bash
-git clone <votre-repo>
+git clone <your-repo>
 cd safertrail-boston
 ```
 
-### 2. Créer l'environnement virtuel
+### 2. Create virtual environment
 
 ```bash
-# Créer l'environnement virtuel
+# Create virtual environment
 python -m venv venv
 
-# Activer l'environnement virtuel
-# Sur Windows :
+# Activate virtual environment
+# On Windows:
 venv\Scripts\activate
-# Sur macOS/Linux :
+# On macOS/Linux:
 source venv/bin/activate
 ```
 
-### 3. Installer les dépendances
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Structure des données
+### 4. Data structure
 
-Créez un dossier `data/` à la racine du projet et ajoutez les fichiers suivants :
+Create a `data/` folder at the project root and add the following files:
 
 ```
 data/
-├── vision-zero-crash-records.csv      # Données d'accidents Vision Zero
-├── 311.csv                            # Signalements 311
-├── boston-street-segments.geojson     # Segments de rue de Boston
-└── crimes-incident-report.csv         # Rapports de crimes
+├── vision-zero-crash-records.csv      # Vision Zero crash data
+├── 311.csv                            # 311 reports
+├── boston-street-segments.geojson     # Boston street segments
+└── crimes-incident-report.csv         # Crime reports
 ```
 
-**Sources de données recommandées :**
+**Recommended data sources:**
 - [Boston Vision Zero Crash Records](https://data.boston.gov/)
 - [Boston 311 Service Requests](https://data.boston.gov/)
 - [Boston Street Segments](https://bostonopendata-boston.opendata.arcgis.com/)
 - [Boston Crime Incident Reports](https://data.boston.gov/)
 
-### 5. Créer les dossiers de modèles
+### 5. Create model directories
 
 ```bash
 mkdir models
 ```
 
-## 🎯 Utilisation
+## 🎯 Usage
 
-### Interface en ligne de commande (CLI)
+### Command Line Interface (CLI)
 
-#### Entraîner le modèle
+#### Train the model
 
 ```bash
-# Premier entraînement
+# Initial training
 python main.py train
 
-# Forcer le réentraînement
+# Force retraining
 python main.py train --force
 ```
 
-#### Analyser les zones à risque
+#### Analyze risk zones
 
 ```bash
-# Obtenir les 10 zones les plus dangereuses (seuil 0.7)
+# Get the 10 most dangerous zones (threshold 0.7)
 python main.py risk-zones
 
-# Personnaliser les paramètres
-python main.py risk-zones --threshold 0.5 --limit 20 --output zones_risque.json
+# Customize parameters
+python main.py risk-zones --threshold 0.5 --limit 20 --output risk_zones.json
 ```
 
-#### Identifier les clusters de danger
+#### Identify danger clusters
 
 ```bash
-# Clusters avec minimum 2 zones
+# Clusters with minimum 2 zones
 python main.py clusters
 
-# Clusters plus grands
-python main.py clusters --min-size 5 --output clusters_danger.json
+# Larger clusters
+python main.py clusters --min-size 5 --output danger_clusters.json
 ```
 
-#### Obtenir des recommandations
+#### Get recommendations
 
 ```bash
-# Recommandations pour une zone spécifique
+# Recommendations for a specific zone
 python main.py recommendations 123
 
-# Sauvegarder les recommandations
-python main.py recommendations 123 --output recommandations_zone_123.json
+# Save recommendations
+python main.py recommendations 123 --output zone_123_recommendations.json
 ```
 
-#### Générer des statistiques
+#### Generate statistics
 
 ```bash
-# Statistiques globales
-python main.py statistics --output stats_globales.json
+# Global statistics
+python main.py statistics --output global_stats.json
 ```
 
-### API REST
+### REST API
 
-#### Démarrer l'API
+#### Start the API
 
 ```bash
-# Démarrage simple
+# Simple startup
 python main.py api
 
-# Configuration personnalisée
+# Custom configuration
 python main.py api --host 0.0.0.0 --port 8080 --debug
 ```
 
-L'API sera disponible à `http://localhost:8000` avec la documentation Swagger à `http://localhost:8000/docs`
+The API will be available at `http://localhost:8000` with Swagger documentation at `http://localhost:8000/docs`
 
-#### Endpoints principaux
+#### Main endpoints
 
-**Analyse de risque :**
-- `GET /risk-zones` - Zones à haut risque
-- `GET /clusters` - Clusters de zones dangereuses
-- `GET /recommendations/<zone_id>` - Recommandations pour une zone
-- `GET /statistics` - Statistiques globales
+**Risk analysis:**
+- `GET /risk-zones` - High-risk zones
+- `GET /clusters` - Dangerous zone clusters
+- `GET /recommendations/<zone_id>` - Recommendations for a zone
+- `GET /statistics` - Global statistics
 
-**Analyse temporelle :**
-- `GET /current-risk` - Risque actuel
-- `GET /time-risk?hour=20&day=Friday` - Risque à un moment spécifique
-- `GET /risk-forecast?hours=24` - Prévision sur 24h
-- `GET /high-risk-times` - Périodes les plus dangereuses
+**Temporal analysis:**
+- `GET /current-risk` - Current risk
+- `GET /time-risk?hour=20&day=Friday` - Risk at a specific time
+- `GET /risk-forecast?hours=24` - 24-hour forecast
+- `GET /high-risk-times` - Most dangerous periods
 
-**Routage sécurisé :**
-- `GET /safe-route` - Itinéraire sécurisé
-- `GET /compare-routes` - Comparaison itinéraire sûr vs court
-- `GET /routing-settings` - Configuration du routeur
+**Secure routing:**
+- `GET /safe-route` - Secure route
+- `GET /compare-routes` - Safe vs short route comparison
+- `GET /routing-settings` - Router configuration
 
-**Exemples d'utilisation :**
+**Usage examples:**
 
 ```bash
-# Risque actuel
+# Current risk
 curl http://localhost:8000/current-risk
 
-# Itinéraire sécurisé
+# Secure route
 curl "http://localhost:8000/safe-route?start_lat=42.3601&start_lon=-71.0589&end_lat=42.3584&end_lon=-71.0598"
 
-# Zones à risque en GeoJSON
+# Risk zones in GeoJSON
 curl "http://localhost:8000/risk-zones?format=geojson&threshold=0.6"
 ```
 
-## 🏗️ Architecture du projet
+## 🏗️ Project Architecture
 
 ```
 safertrail-boston/
-├── main.py                    # Point d'entrée CLI
-├── requirements.txt           # Dépendances Python
+├── main.py                    # CLI entry point
+├── requirements.txt           # Python dependencies
 ├── README.md                 # Documentation
-├── data/                     # Données sources (à créer)
-├── models/                   # Modèles entraînés (à créer)
+├── data/                     # Source data (to create)
+├── models/                   # Trained models (to create)
 └── src/
-    ├── risk_model.py         # Modèle principal d'analyse des risques
-    ├── time_based_risk_model.py  # Modèle de prédiction temporelle
-    ├── alt_routing.py        # Algorithme de routage ALT
-    ├── api.py               # API REST Flask
-    ├── data_loader.py       # Chargement des données
-    ├── data_processor.py    # Traitement et analyse des données
-    └── geo_utils.py         # Utilitaires géospatiaux
+    ├── risk_model.py         # Main risk analysis model
+    ├── time_based_risk_model.py  # Temporal prediction model
+    ├── alt_routing.py        # ALT routing algorithm
+    ├── api.py               # Flask REST API
+    ├── data_loader.py       # Data loading
+    ├── data_processor.py    # Data processing and analysis
+    └── geo_utils.py         # Geospatial utilities
 ```
 
-## 🧭 Fonctionnalités du routage
+## 🧭 Routing Features
 
-### Classification automatique des routes
+### Automatic road classification
 
-Le système classe automatiquement les routes selon leur praticabilité pour les piétons :
+The system automatically classifies roads according to their walkability for pedestrians:
 
-- **Routes interdites** : Autoroutes, voies rapides (> 55 mph)
-- **Transports requis** : Ferries, certains ponts/tunnels
-- **Routes avec avertissements** : Zones industrielles, ruelles, routes à trafic dense
+- **Prohibited roads**: Highways, expressways (> 55 mph)
+- **Transport required**: Ferries, certain bridges/tunnels
+- **Roads with warnings**: Industrial areas, alleys, high-traffic roads
 
-### Algorithme ALT (A* avec Landmarks)
+### ALT Algorithm (A* with Landmarks)
 
-- Optimisation par landmarks pour un routage rapide
-- Prise en compte du risque piéton et de l'heure
-- Évitement automatique des routes dangereuses
-- Support des transports en commun et ferries
+- Landmark optimization for fast routing
+- Considers pedestrian risk and time
+- Automatic avoidance of dangerous roads
+- Support for public transport and ferries
 
-### Paramètres configurables
+### Configurable parameters
 
 ```bash
-# Configurer l'importance du facteur risque vs distance
+# Configure risk factor importance vs distance
 curl -X POST http://localhost:8000/routing-settings \
   -H "Content-Type: application/json" \
   -d '{"risk_weight": 0.8, "max_detour_factor": 1.5}'
 ```
 
-## 📊 Exemple de workflow complet
+## 📊 Complete Workflow Example
 
 ```bash
-# 1. Entraîner le modèle
+# 1. Train the model
 python main.py train
 
-# 2. Analyser les zones dangereuses
-python main.py risk-zones --threshold 0.6 --output zones_danger.json
+# 2. Analyze dangerous zones
+python main.py risk-zones --threshold 0.6 --output danger_zones.json
 
-# 3. Identifier les clusters
+# 3. Identify clusters
 python main.py clusters --min-size 3 --output clusters.json
 
-# 4. Démarrer l'API pour l'utilisation en temps réel
+# 4. Start API for real-time use
 python main.py api --port 8000
 
-# 5. Tester le routage sécurisé
+# 5. Test secure routing
 curl "http://localhost:8000/safe-route?start_lat=42.3601&start_lon=-71.0589&end_lat=42.3584&end_lon=-71.0598&format=geojson"
 ```
 
-## 🔧 Développement
+## 🔧 Development
 
-### Ajouter de nouvelles fonctionnalités
+### Adding new features
 
-1. **Nouveaux facteurs de risque** : Modifier `data_processor.py`
-2. **Algorithmes de routage** : Étendre `alt_routing.py`
-3. **Endpoints API** : Ajouter dans `api.py`
-4. **Analyses temporelles** : Développer `time_based_risk_model.py`
+1. **New risk factors**: Modify `data_processor.py`
+2. **Routing algorithms**: Extend `alt_routing.py`
+3. **API endpoints**: Add to `api.py`
+4. **Temporal analysis**: Develop `time_based_risk_model.py`
 
-### Tests
+### Testing
 
 ```bash
-# Lancer les tests (si implémentés)
+# Run tests (if implemented)
 python -m pytest tests/
 ```
 
 ## 📈 Performance
 
-- **Entraînement** : ~2-5 minutes selon la taille des données
-- **Routage** : <1 seconde pour des distances moyennes
-- **API** : Support de plusieurs requêtes simultanées
-- **Mémoire** : ~500MB-2GB selon la densité du réseau routier
+- **Training**: ~2-5 minutes depending on data size
+- **Routing**: <1 second for average distances
+- **API**: Support for multiple simultaneous requests
+- **Memory**: ~500MB-2GB depending on road network density
 
 ## ⚠️ Limitations
 
-- Données limitées à Boston
-- Qualité dépendante des données sources
-- Algorithme de routage optimisé pour piétons uniquement
-- Prédictions basées sur données historiques
+- Data limited to Boston
+- Quality dependent on source data
+- Routing algorithm optimized for pedestrians only
+- Predictions based on historical data
 
-## 🤝 Contribution
+## 🤝 Contributing
 
-1. Fork le projet
-2. Créer une branche feature (`git checkout -b feature/nouvelle-fonctionnalite`)
-3. Commit les modifications (`git commit -am 'Ajouter nouvelle fonctionnalité'`)
-4. Push vers la branche (`git push origin feature/nouvelle-fonctionnalite`)
-5. Créer une Pull Request
+1. Fork the project
+2. Create a feature branch (`git checkout -b feature/new-feature`)
+3. Commit changes (`git commit -am 'Add new feature'`)
+4. Push to branch (`git push origin feature/new-feature`)
+5. Create a Pull Request
 
-## 📝 Licence
+## 📝 License
 
-Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+This project is under MIT license. See the `LICENSE` file for more details.
 
 ## 🆘 Support
 
-- **Issues** : Utiliser le système d'issues GitHub
-- **Documentation API** : `http://localhost:8000/docs` après démarrage
-- **Logs** : Les erreurs sont affichées dans la console
+- **Issues**: Use GitHub issue system
+- **API Documentation**: `http://localhost:8000/docs` after startup
+- **Logs**: Errors are displayed in console
 
-## 🙏 Remerciements
+## 🙏 Acknowledgments
 
-- Ville de Boston pour les données ouvertes
-- Communauté Vision Zero
-- Contributeurs des bibliothèques open source utilisées
+- City of Boston for open data
+- Vision Zero community
+- Contributors to the open source libraries used
 
 ---
 
-**Fait avec ❤️ pour la sécurité des piétons à Boston**
+**Made with ❤️ for pedestrian safety in Boston**
